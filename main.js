@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import {FBXLoader} from 'three/addons/loaders/FBXLoader.js';
 import {FontLoader} from 'three/addons/loaders/FontLoader.js';
 import {TextGeometry} from 'three/addons/geometries/TextGeometry.js';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 
 
 /**
@@ -21,9 +22,16 @@ const ambientLight = new THREE.AmbientLight(0xFFFFFF);
 scene.add(ambientLight);
 
 const sun = new THREE.DirectionalLight(0xFFFFFF, 0.5);
+sun.position.set(0, 0, 20);
 sun.radius = 10;
 sun.castShadow = true;
-sun.position.set(0, 0, 1);
+sun.shadow.camera.top = 2500;
+sun.shadow.camera.bottom = -2500;
+sun.shadow.camera.left = -2500;
+sun.shadow.camera.right = 2500;
+sun.shadow.camera.near = 0.0001;
+sun.shadow.camera.far = 100000000;
+sun.shadow.mapSize.set(2048, 2048);
 scene.add(sun);
 
 
@@ -63,10 +71,11 @@ fontLoader.load(
         const textGeometry = new TextGeometry('Pedro Dutra', {
             font: font,
             size: 75,
-            height: 1,
+            height: 10,
             curveSegments: 20,
         });
-        const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+
+        const textMesh = new THREE.Mesh(textGeometry);
         textMesh.position.set(-550, -30, -10);
         textMesh.castShadow = true;
         textMesh.receiveShadow = true;
@@ -95,15 +104,23 @@ const camera = new THREE.OrthographicCamera(
     -1000,
     1000
 );
+camera.position.z = 1;
 scene.add(camera);
 
+// Renderer
 const renderer = new THREE.WebGLRenderer({
     canvas: canvas,
     alpha: true
 });
-renderer.setSize(sizes.width, sizes.height);
 renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.setSize(sizes.width, sizes.height);
 
+
+/**
+ * CONTROL
+ */
+const control = new OrbitControls(camera, canvas);
 
 /**
  * ANIMATOR
@@ -119,8 +136,10 @@ const tick = () => {
         mixer.setTime(elapsedTime);
     }
 
-    sun.position.x = Math.cos(elapsedTime * 0.9) * sizes.width / 1.2;
-    sun.position.y = Math.sin(elapsedTime * 0.9) * sizes.height / 1.2;
+    sun.position.x = Math.cos(elapsedTime * 0.2) * sizes.width / 1.2;
+    sun.position.y = Math.sin(elapsedTime * 0.2) * sizes.height / 1.2;
+
+    control.update();
 
     renderer.render(scene, camera);
     window.requestAnimationFrame(tick);
