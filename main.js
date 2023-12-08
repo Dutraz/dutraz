@@ -4,7 +4,6 @@ import {FBXLoader} from 'three/addons/loaders/FBXLoader.js';
 import {FontLoader} from 'three/addons/loaders/FontLoader.js';
 import {TextGeometry} from 'three/addons/geometries/TextGeometry.js';
 
-
 /**
  * SCENE
  */
@@ -38,49 +37,43 @@ scene.add(sun);
  * MESH's
  */
 const fbxLoader = new FBXLoader();
-fbxLoader.load(
-    '/models/office-cubicle/source/cenario.fbx',
-    (obj, materials) => {
-        obj.scale.setScalar(0.2);
-        obj.position.set(250, -140, 0);
-        obj.rotation.set(0.4, -0.75, 0);
+fbxLoader.load('/models/office-cubicle/source/cenario.fbx', (obj) => {
+    obj.scale.setScalar(0.2);
+    obj.position.set(250, -140, 0);
+    obj.rotation.set(0.4, -0.75, 0);
 
-        obj.traverse((child) => {
-            if (child.isMesh) {
-                child.material.transparent = false;
-                child.castShadow = true;
-                child.receiveShadow = true;
-            }
-        });
+    obj.traverse((child) => {
+        if (child.isMesh) {
+            child.material.transparent = false;
+            child.castShadow = true;
+            child.receiveShadow = true;
+        }
+    });
 
-        mixer = new THREE.AnimationMixer(obj);
-        action = mixer.clipAction(obj.animations[2]);
-        action.play();
+    mixer = new THREE.AnimationMixer(obj);
+    action = mixer.clipAction(obj.animations[2]);
+    action.play();
 
-        sun.target = obj;
-        scene.add(obj);
-    },
-);
+    sun.target = obj;
+    scene.add(obj);
+},);
 
 
 const fontLoader = new FontLoader();
-fontLoader.load(
-    'fonts/kdam_thmor_pro_regular.json',
-    (font) => {
-        const textGeometry = new TextGeometry('Pedro Dutra', {
-            font: font,
-            size: 75,
-            height: 10,
-            curveSegments: 20,
-        });
+fontLoader.load('fonts/kdam_thmor_pro_regular.json', (font) => {
+    const textGeometry = new TextGeometry('Pedro Dutra', {
+        font: font,
+        size: 75,
+        height: 10,
+        curveSegments: 20,
+    });
 
-        const textMesh = new THREE.Mesh(textGeometry);
-        textMesh.position.set(-550, -30, -10);
-        textMesh.castShadow = true;
-        textMesh.receiveShadow = true;
-        scene.add(textMesh);
-    }
-);
+    const textMesh = new THREE.Mesh(textGeometry);
+    textMesh.position.set(-550, -30, -10);
+    textMesh.castShadow = true;
+    textMesh.receiveShadow = true;
+    scene.add(textMesh);
+});
 
 
 /**
@@ -95,8 +88,7 @@ const sizes = {
 /**
  * CAMERA
  */
-const INITIAL_ZOOM = 1;
-const INITIAL_POSITION = {
+const INIT_CAM = {
     position: {
         x: 0,
         y: 0,
@@ -104,13 +96,12 @@ const INITIAL_POSITION = {
     },
     rotation: {
         x: 0,
-
         y: 0,
         z: 0,
     },
+    zoom: 1,
 };
-const FINAL_ZOOM = 19;
-const FINAL_POSITION = {
+const FIN_CAM = {
     position: {
         x: 625,
         y: 62,
@@ -121,25 +112,12 @@ const FINAL_POSITION = {
         y: -0.75,
         z: 0,
     },
+    zoom: 19,
 };
+const CURR_CAM = JSON.parse(JSON.stringify(INIT_CAM));
 
-const camera = new THREE.OrthographicCamera(
-    sizes.width / -2,
-    sizes.width / 2,
-    sizes.height / 2,
-    sizes.height / -2,
-    -300,
-    1000
-);
 
-camera.position.z = INITIAL_POSITION.position.z;
-camera.position.x = INITIAL_POSITION.position.x;
-camera.position.y = INITIAL_POSITION.position.y;
-camera.rotation.x = INITIAL_POSITION.rotation.x;
-camera.rotation.y = INITIAL_POSITION.rotation.y;
-camera.rotation.z = INITIAL_POSITION.rotation.z;
-camera.zoom = INITIAL_ZOOM;
-camera.updateProjectionMatrix();
+const camera = new THREE.OrthographicCamera(sizes.width / -2, sizes.width / 2, sizes.height / 2, sizes.height / -2, -300, 1000,);
 scene.add(camera);
 
 // Renderer
@@ -155,38 +133,31 @@ renderer.setSize(sizes.width, sizes.height);
 /**
  * CONTROL
  */
-// const control = new OrbitControls(camera, canvas);
-
 const handleScroll = (event) => {
-    const scroll = event.deltaY ?? 1;
-    const signal = (n) => n > 0 ? 1 : -1;
+    const scroll = ((event.deltaY ?? 1) > 0 ? 1 : -1) * 100;
+    const velocity = 0.0007;
 
-    Object.keys(INITIAL_POSITION).forEach((trans) =>
-        Object.keys(INITIAL_POSITION[trans]).forEach((axis) => {
-            camera[trans][axis] += scroll * (FINAL_POSITION[trans][axis] - INITIAL_POSITION[trans][axis]) / 1500;
+    ['position', 'rotation'].forEach((trans) => Object.keys(INIT_CAM[trans]).forEach((axis) => {
+        const coef = trans === 'rotation' && axis === 'y' ? velocity : velocity * 1.5;
+        CURR_CAM[trans][axis] += scroll * (FIN_CAM[trans][axis] - INIT_CAM[trans][axis]) * coef;
 
-            const position = camera[trans][axis];
-            const sig = signal(FINAL_POSITION[trans][axis]);
+        const signal = FIN_CAM[trans][axis] > 0 ? 1 : -1;
 
-            if (sig * position < sig * INITIAL_POSITION[trans][axis]) {
-                camera[trans][axis] = INITIAL_POSITION[trans][axis];
-            } else if (sig * position > sig * FINAL_POSITION[trans][axis]) {
-                camera[trans][axis] = FINAL_POSITION[trans][axis];
-            }
-        })
-    );
+        if (signal * CURR_CAM[trans][axis] < signal * INIT_CAM[trans][axis]) {
+            CURR_CAM[trans][axis] = INIT_CAM[trans][axis];
+        } else if (signal * CURR_CAM[trans][axis] > signal * FIN_CAM[trans][axis]) {
+            CURR_CAM[trans][axis] = FIN_CAM[trans][axis];
+        }
+    }));
 
-    camera.zoom += scroll * (FINAL_ZOOM - INITIAL_ZOOM) / 1500;
+    CURR_CAM.zoom += scroll * (FIN_CAM.zoom - INIT_CAM.zoom) * velocity;
 
-    if (camera.zoom < INITIAL_ZOOM) {
-        camera.zoom = INITIAL_ZOOM;
-    } else if (camera.zoom > FINAL_ZOOM) {
-        camera.zoom = FINAL_ZOOM;
+    if (CURR_CAM.zoom < INIT_CAM.zoom) {
+        CURR_CAM.zoom = INIT_CAM.zoom;
+    } else if (CURR_CAM.zoom > FIN_CAM.zoom) {
+        CURR_CAM.zoom = FIN_CAM.zoom;
     }
-
-    camera.updateProjectionMatrix();
 };
-// handleScroll();
 
 window.addEventListener('wheel', handleScroll);
 
@@ -195,6 +166,12 @@ window.addEventListener('wheel', handleScroll);
  */
 const clock = new THREE.Clock();
 let previousTime = 0;
+
+const moveSun = (elapsedTime) => {
+    sun.position.x = Math.cos(elapsedTime * 0.2) * sizes.width / 1.2;
+    sun.position.y = Math.sin(elapsedTime * 0.2) * sizes.height / 1.2;
+};
+
 const tick = () => {
     const elapsedTime = clock.getElapsedTime();
     const deltaTime = elapsedTime - previousTime;
@@ -204,10 +181,12 @@ const tick = () => {
         mixer.setTime(elapsedTime);
     }
 
-    sun.position.x = Math.cos(elapsedTime * 0.2) * sizes.width / 1.2;
-    sun.position.y = Math.sin(elapsedTime * 0.2) * sizes.height / 1.2;
+    moveSun(elapsedTime);
 
-    // control.update();
+    camera.position.set(CURR_CAM.position.x, CURR_CAM.position.y, CURR_CAM.position.z);
+    camera.rotation.set(CURR_CAM.rotation.x, CURR_CAM.rotation.y, CURR_CAM.rotation.z);
+    camera.zoom = CURR_CAM.zoom;
+    camera.updateProjectionMatrix();
 
     renderer.render(scene, camera);
     window.requestAnimationFrame(tick);
