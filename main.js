@@ -3,7 +3,6 @@ import * as THREE from 'three';
 import {FBXLoader} from 'three/addons/loaders/FBXLoader.js';
 import {FontLoader} from 'three/addons/loaders/FontLoader.js';
 import {TextGeometry} from 'three/addons/geometries/TextGeometry.js';
-import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 
 
 /**
@@ -96,15 +95,51 @@ const sizes = {
 /**
  * CAMERA
  */
+const INITIAL_ZOOM = 1;
+const INITIAL_POSITION = {
+    position: {
+        x: 0,
+        y: 0,
+        z: 1,
+    },
+    rotation: {
+        x: 0,
+
+        y: 0,
+        z: 0,
+    },
+};
+const FINAL_ZOOM = 19;
+const FINAL_POSITION = {
+    position: {
+        x: 625,
+        y: 62,
+        z: -195,
+    },
+    rotation: {
+        x: 0.4,
+        y: -0.75,
+        z: 0,
+    },
+};
+
 const camera = new THREE.OrthographicCamera(
     sizes.width / -2,
     sizes.width / 2,
     sizes.height / 2,
     sizes.height / -2,
-    -1000,
+    -300,
     1000
 );
-camera.position.z = 1;
+
+camera.position.z = INITIAL_POSITION.position.z;
+camera.position.x = INITIAL_POSITION.position.x;
+camera.position.y = INITIAL_POSITION.position.y;
+camera.rotation.x = INITIAL_POSITION.rotation.x;
+camera.rotation.y = INITIAL_POSITION.rotation.y;
+camera.rotation.z = INITIAL_POSITION.rotation.z;
+camera.zoom = INITIAL_ZOOM;
+camera.updateProjectionMatrix();
 scene.add(camera);
 
 // Renderer
@@ -120,7 +155,40 @@ renderer.setSize(sizes.width, sizes.height);
 /**
  * CONTROL
  */
-const control = new OrbitControls(camera, canvas);
+// const control = new OrbitControls(camera, canvas);
+
+const handleScroll = (event) => {
+    const scroll = event.deltaY ?? 1;
+    const signal = (n) => n > 0 ? 1 : -1;
+
+    Object.keys(INITIAL_POSITION).forEach((trans) =>
+        Object.keys(INITIAL_POSITION[trans]).forEach((axis) => {
+            camera[trans][axis] += scroll * (FINAL_POSITION[trans][axis] - INITIAL_POSITION[trans][axis]) / 1500;
+
+            const position = camera[trans][axis];
+            const sig = signal(FINAL_POSITION[trans][axis]);
+
+            if (sig * position < sig * INITIAL_POSITION[trans][axis]) {
+                camera[trans][axis] = INITIAL_POSITION[trans][axis];
+            } else if (sig * position > sig * FINAL_POSITION[trans][axis]) {
+                camera[trans][axis] = FINAL_POSITION[trans][axis];
+            }
+        })
+    );
+
+    camera.zoom += scroll * (FINAL_ZOOM - INITIAL_ZOOM) / 1500;
+
+    if (camera.zoom < INITIAL_ZOOM) {
+        camera.zoom = INITIAL_ZOOM;
+    } else if (camera.zoom > FINAL_ZOOM) {
+        camera.zoom = FINAL_ZOOM;
+    }
+
+    camera.updateProjectionMatrix();
+};
+// handleScroll();
+
+window.addEventListener('wheel', handleScroll);
 
 /**
  * ANIMATOR
@@ -139,7 +207,7 @@ const tick = () => {
     sun.position.x = Math.cos(elapsedTime * 0.2) * sizes.width / 1.2;
     sun.position.y = Math.sin(elapsedTime * 0.2) * sizes.height / 1.2;
 
-    control.update();
+    // control.update();
 
     renderer.render(scene, camera);
     window.requestAnimationFrame(tick);
