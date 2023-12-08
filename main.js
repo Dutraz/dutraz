@@ -133,30 +133,11 @@ renderer.setSize(sizes.width, sizes.height);
 /**
  * CONTROL
  */
+let scrollDirection = 0;
+let scrollProgress = 0;
 const handleScroll = (event) => {
-    const scroll = ((event.deltaY ?? 1) > 0 ? 1 : -1) * 100;
-    const velocity = 0.0007;
-
-    ['position', 'rotation'].forEach((trans) => Object.keys(INIT_CAM[trans]).forEach((axis) => {
-        const coef = trans === 'rotation' && axis === 'y' ? velocity : velocity * 1.5;
-        CURR_CAM[trans][axis] += scroll * (FIN_CAM[trans][axis] - INIT_CAM[trans][axis]) * coef;
-
-        const signal = FIN_CAM[trans][axis] > 0 ? 1 : -1;
-
-        if (signal * CURR_CAM[trans][axis] < signal * INIT_CAM[trans][axis]) {
-            CURR_CAM[trans][axis] = INIT_CAM[trans][axis];
-        } else if (signal * CURR_CAM[trans][axis] > signal * FIN_CAM[trans][axis]) {
-            CURR_CAM[trans][axis] = FIN_CAM[trans][axis];
-        }
-    }));
-
-    CURR_CAM.zoom += scroll * (FIN_CAM.zoom - INIT_CAM.zoom) * velocity;
-
-    if (CURR_CAM.zoom < INIT_CAM.zoom) {
-        CURR_CAM.zoom = INIT_CAM.zoom;
-    } else if (CURR_CAM.zoom > FIN_CAM.zoom) {
-        CURR_CAM.zoom = FIN_CAM.zoom;
-    }
+    scrollDirection = ((event.deltaY ?? 1) > 0 ? 1 : -1);
+    scrollProgress = 0;
 };
 
 window.addEventListener('wheel', handleScroll);
@@ -172,6 +153,26 @@ const moveSun = (elapsedTime) => {
     sun.position.y = Math.sin(elapsedTime * 0.2) * sizes.height / 1.2;
 };
 
+const moveCamera = () => {
+    const destination = scrollDirection > 0 ? FIN_CAM : INIT_CAM;
+    scrollProgress += 0.001;
+
+    CURR_CAM.position.x = THREE.MathUtils.lerp(CURR_CAM.position.x, destination.position.x, scrollProgress);
+    CURR_CAM.position.y = THREE.MathUtils.lerp(CURR_CAM.position.y, destination.position.y, scrollProgress);
+    CURR_CAM.position.z = THREE.MathUtils.lerp(CURR_CAM.position.z, destination.position.z, scrollProgress);
+
+    CURR_CAM.rotation.x = THREE.MathUtils.lerp(CURR_CAM.rotation.x, destination.rotation.x, scrollProgress);
+    CURR_CAM.rotation.y = THREE.MathUtils.lerp(CURR_CAM.rotation.y, destination.rotation.y, scrollProgress);
+    CURR_CAM.rotation.z = THREE.MathUtils.lerp(CURR_CAM.rotation.z, destination.rotation.z, scrollProgress);
+
+    CURR_CAM.zoom = THREE.MathUtils.lerp(CURR_CAM.zoom, destination.zoom, scrollProgress);
+
+    if (scrollProgress >= 1) {
+        scrollDirection = 0;
+        scrollProgress = 0;
+    }
+};
+
 const tick = () => {
     const elapsedTime = clock.getElapsedTime();
     const deltaTime = elapsedTime - previousTime;
@@ -182,6 +183,10 @@ const tick = () => {
     }
 
     moveSun(elapsedTime);
+
+    if (scrollDirection !== 0) {
+        moveCamera();
+    }
 
     camera.position.set(CURR_CAM.position.x, CURR_CAM.position.y, CURR_CAM.position.z);
     camera.rotation.set(CURR_CAM.rotation.x, CURR_CAM.rotation.y, CURR_CAM.rotation.z);
