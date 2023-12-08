@@ -8,6 +8,7 @@ import {TextGeometry} from 'three/addons/geometries/TextGeometry.js';
  * SCENE
  */
 const canvas = document.querySelector('canvas.webgl');
+const resume = document.querySelector('#resume');
 const scene = new THREE.Scene();
 let mixer = null;
 let action = null;
@@ -117,10 +118,12 @@ const FIN_CAM = {
 const CURR_CAM = JSON.parse(JSON.stringify(INIT_CAM));
 
 
-const camera = new THREE.OrthographicCamera(sizes.width / -2, sizes.width / 2, sizes.height / 2, sizes.height / -2, -300, 1000,);
+const camera = new THREE.OrthographicCamera(sizes.width / -2, sizes.width / 2, sizes.height / 2, sizes.height / -2, -300, 1000);
 scene.add(camera);
 
-// Renderer
+/**
+ * RENDERER
+ */
 const renderer = new THREE.WebGLRenderer({
     canvas: canvas,
     alpha: true
@@ -137,7 +140,7 @@ let scrollDirection = 0;
 let scrollProgress = 0;
 const handleScroll = (event) => {
     scrollDirection = ((event.deltaY ?? 1) > 0 ? 1 : -1);
-    scrollProgress = 0;
+    resume.style.display = 'none';
 };
 
 window.addEventListener('wheel', handleScroll);
@@ -154,20 +157,24 @@ const moveSun = (elapsedTime) => {
 };
 
 const moveCamera = () => {
+    const origin = scrollDirection > 0 ? INIT_CAM : FIN_CAM;
     const destination = scrollDirection > 0 ? FIN_CAM : INIT_CAM;
-    scrollProgress += 0.001;
+    scrollProgress += 0.01;
 
-    CURR_CAM.position.x = THREE.MathUtils.lerp(CURR_CAM.position.x, destination.position.x, scrollProgress);
-    CURR_CAM.position.y = THREE.MathUtils.lerp(CURR_CAM.position.y, destination.position.y, scrollProgress);
-    CURR_CAM.position.z = THREE.MathUtils.lerp(CURR_CAM.position.z, destination.position.z, scrollProgress);
+    CURR_CAM.position.x = THREE.MathUtils.lerp(origin.position.x, destination.position.x, scrollProgress);
+    CURR_CAM.position.y = THREE.MathUtils.lerp(origin.position.y, destination.position.y, scrollProgress);
+    CURR_CAM.position.z = THREE.MathUtils.lerp(origin.position.z, destination.position.z, scrollProgress);
 
-    CURR_CAM.rotation.x = THREE.MathUtils.lerp(CURR_CAM.rotation.x, destination.rotation.x, scrollProgress);
-    CURR_CAM.rotation.y = THREE.MathUtils.lerp(CURR_CAM.rotation.y, destination.rotation.y, scrollProgress);
-    CURR_CAM.rotation.z = THREE.MathUtils.lerp(CURR_CAM.rotation.z, destination.rotation.z, scrollProgress);
+    CURR_CAM.rotation.x = THREE.MathUtils.lerp(origin.rotation.x, destination.rotation.x, scrollProgress);
+    CURR_CAM.rotation.y = THREE.MathUtils.lerp(origin.rotation.y, destination.rotation.y, scrollProgress);
+    CURR_CAM.rotation.z = THREE.MathUtils.lerp(origin.rotation.z, destination.rotation.z, scrollProgress);
 
-    CURR_CAM.zoom = THREE.MathUtils.lerp(CURR_CAM.zoom, destination.zoom, scrollProgress);
+    CURR_CAM.zoom = THREE.MathUtils.lerp(origin.zoom, destination.zoom, scrollProgress);
 
     if (scrollProgress >= 1) {
+        if (scrollDirection > 0) {
+            resume.style.display = 'flex';
+        }
         scrollDirection = 0;
         scrollProgress = 0;
     }
@@ -175,8 +182,6 @@ const moveCamera = () => {
 
 const tick = () => {
     const elapsedTime = clock.getElapsedTime();
-    const deltaTime = elapsedTime - previousTime;
-    previousTime = elapsedTime;
 
     if (mixer) {
         mixer.setTime(elapsedTime);
@@ -196,4 +201,5 @@ const tick = () => {
     renderer.render(scene, camera);
     window.requestAnimationFrame(tick);
 };
+
 tick();
