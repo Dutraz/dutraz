@@ -25,31 +25,65 @@ html {
 =*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=
  */
 #resume {
+    position: absolute;
+    top: 0;
+    left: 0;
     display: none;
+    width: 100vw;
+    height: 100vh;
     justify-content: center;
     align-items: center;
 }
 
-.resume-page {
+#resume-wrapper {
     width: 55%;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    gap: 3rem;
+    height: 91%;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    /* hide scroll bar */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
-.resume-page > h2 {
+.resume-page {
     display: flex;
-    align-items: center;
+    flex-direction: row;
+    gap: 3rem;
+    padding-bottom: 100px;
+}
+
+.resume-page h2 {
     padding-top: 100px;
+    padding-bottom: 30px;
     font-size: 3rem;
 }
 
-.resume-page > p {
+.resume-page h3 {
+    padding-bottom: 25px;
+}
+
+.resume-page p {
     font-size: 1.1rem;
     line-height: 1.5;
 }
 
-.resume-page > p.half-column {
-    width: 50%;
+.resume-page a {
+    color: #4AF626;
 }
+
+.col-6 {
+    width: 50%;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.webgl2 {
+    width: 100%;
+    height: 100%;
+    position: fixed;
+}
+
+#resume-wrapper::-webkit-scrollbar {
+    display: none;
+}
+

@@ -9,6 +9,7 @@ import {TextGeometry} from 'three/addons/geometries/TextGeometry.js';
  */
 const canvas = document.querySelector('canvas.webgl');
 const resume = document.querySelector('#resume');
+const wrapper = document.querySelector('#resume-wrapper');
 const scene = new THREE.Scene();
 let mixer = null;
 let action = null;
@@ -138,9 +139,26 @@ renderer.setSize(sizes.width, sizes.height);
  */
 let scrollDirection = 0;
 let scrollProgress = 0;
+let scrollPosition = 0;
 const handleScroll = (event) => {
-    scrollDirection = ((event.deltaY ?? 1) > 0 ? 1 : -1);
-    resume.style.display = 'none';
+    let v = ((event.deltaY ?? 1) > 0 ? 1 : -1);
+
+    if (scrollPosition === 1) {
+        wrapper.scroll(0, wrapper.scrollTop + event.deltaY);
+        if (wrapper.scrollTop !== 0) {
+            return;
+        }
+    }
+
+    if (v === scrollPosition) {
+        return;
+    }
+
+    if (scrollProgress === 0) {
+        scrollDirection = v;
+        scrollPosition = scrollDirection;
+        resume.style.display = 'none';
+    }
 };
 
 window.addEventListener('wheel', handleScroll);
@@ -149,7 +167,6 @@ window.addEventListener('wheel', handleScroll);
  * ANIMATOR
  */
 const clock = new THREE.Clock();
-let previousTime = 0;
 
 const moveSun = (elapsedTime) => {
     sun.position.x = Math.cos(elapsedTime * 0.2) * sizes.width / 1.2;
@@ -175,6 +192,7 @@ const moveCamera = () => {
         if (scrollDirection > 0) {
             resume.style.display = 'flex';
         }
+
         scrollDirection = 0;
         scrollProgress = 0;
     }
